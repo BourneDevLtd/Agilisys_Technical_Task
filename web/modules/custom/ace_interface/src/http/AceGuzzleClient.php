@@ -2,58 +2,104 @@
 
 namespace Drupal\ace_interface\http;
 
-use GuzzleHttp\Middleware;
-use GuzzleHttp\Psr7\Request;
-
-//use GuzzleHttp\Client;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use GuzzleHttp\Psr7\Response;
 use GuzzleHttp\Client;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Handler\CurlHandler;
-use Psr\Http\Message\RequestInterface;
 use Drupal\Core\Serialization\Yaml;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 
-
+/**
+ * AceGuzzleClient.
+ *
+ * Utilizes the Guzzle HTTP Client.
+ */
 class AceGuzzleClient {
 
   /**
+   * GuzzleHttpClient $client.
+   *
    * @var \GuzzleHttp\Client
    */
   protected $client;
 
   /**
+   * GuzzleHttp $lastRequest.
+   *
    * @var \GuzzleHttp\Psr7\Request
    */
   protected $lastRequest;
 
+  /**
+   * Last Body $lastBody.
+   *
+   * @var string
+   */
   protected $lastBody;
 
+  /**
+   * Last Response $lastResponse.
+   *
+   * @var string
+   */
   protected $lastResponse;
 
+  /**
+   * Last Code $lastCode.
+   *
+   * @var string
+   */
   protected $lastCode;
 
+  /**
+   * Time Start $timeStart.
+   *
+   * @var string
+   */
   protected $timeStart;
 
+  /**
+   * Time End $timeEnd.
+   *
+   * @var string
+   */
   protected $timeEnd;
 
+  /**
+   * Time $time.
+   *
+   * @var string
+   */
   protected $time;
 
+  /**
+   * Last Error Message $lastErrorMessage.
+   *
+   * @var string
+   */
   protected $lastErrorMessage;
 
+  /**
+   * Last User Friendly Error $lastUserFriendlyError.
+   *
+   * @var string
+   */
   protected $lastUserFriendlyError;
 
   /**
+   * Config $config.
+   *
    * @var string
    */
   protected $config;
 
   /**
+   * Configuration Factory $configFactory.
+   *
    * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
   protected $configFactory;
 
+  /**
+   * Add Comments.
+   */
   public function __construct(ConfigFactoryInterface $config_factory) {
 
     $this->configFactory = $config_factory;
@@ -63,14 +109,23 @@ class AceGuzzleClient {
 
   }
 
+  /**
+   * Add Comments.
+   */
   public function base($base_uri) {
     $this->client = new Client(['base_uri' => $base_uri]);
   }
 
+  /**
+   * Add Comments.
+   */
   public function setConfigFromContainer($config_container) {
     $this->config = $this->configFactory->get($config_container);
   }
 
+  /**
+   * Add Comments.
+   */
   private function initialise() {
     $this->lastBody = NULL;
     $this->lastRequest = NULL;
@@ -78,12 +133,18 @@ class AceGuzzleClient {
     $this->lastCode = NULL;
   }
 
+  /**
+   * Add Comments.
+   */
   public function get($uri, $options, $debug = FALSE, $catch_not_found = TRUE) {
 
     return $this->request('GET', $uri, $options, $debug, $catch_not_found);
 
   }
 
+  /**
+   * Add Comments.
+   */
   public function post($uri, $options, $body, $debug = FALSE, $catch = TRUE) {
 
     $options['body'] = $body;
@@ -91,6 +152,9 @@ class AceGuzzleClient {
 
   }
 
+  /**
+   * Add Comments.
+   */
   public function patch($uri, $options, $body, $debug = FALSE) {
 
     $options['body'] = $body;
@@ -98,6 +162,9 @@ class AceGuzzleClient {
 
   }
 
+  /**
+   * Add Comments.
+   */
   public function put($uri, $options, $body, $debug = FALSE, $catch = TRUE) {
 
     $options['body'] = $body;
@@ -105,30 +172,45 @@ class AceGuzzleClient {
 
   }
 
+  /**
+   * Add Comments.
+   */
   public function getLastRequest() {
     $request = $this->lastRequest;
     $this->lastRequest = NULL;
     return $request;
   }
 
+  /**
+   * Add Comments.
+   */
   public function getLastCode() {
     $code = $this->lastCode;
     $this->lastCode = NULL;
     return $code;
   }
 
+  /**
+   * Add Comments.
+   */
   public function getLastBody() {
     $body = $this->lastBody;
     $this->lastBody = NULL;
     return $body;
   }
 
+  /**
+   * Add Comments.
+   */
   public function getLastResponse() {
     $response = $this->lastResponse;
     $this->lastResponse = NULL;
     return $response;
   }
 
+  /**
+   * Add Comments.
+   */
   public function getLastErrorMessage() {
     $message = $this->lastErrorMessage;
     $this->lastErrorMessage = NULL;
@@ -136,6 +218,9 @@ class AceGuzzleClient {
     return $message;
   }
 
+  /**
+   * Add Comments.
+   */
   public function getLastUserFriendlyMessage() {
     $message = $this->lastUserFriendlyError;
     $this->lastUserFriendlyError = NULL;
@@ -147,6 +232,9 @@ class AceGuzzleClient {
     return $message;
   }
 
+  /**
+   * Add Comments.
+   */
   public function buildBody($params) {
     $body = '';
     $counter = 1;
@@ -161,21 +249,32 @@ class AceGuzzleClient {
     return $body;
   }
 
+  /**
+   * Add Comments.
+   */
   private function go() {
     $this->timeStart = microtime(TRUE);
 
   }
 
+  /**
+   * Add Comments.
+   */
   private function stop() {
     $this->timeEnd = microtime(TRUE);
-    $this->time = $this->timeEnd * 1000 - $this->timeStart * 1000; //Difference
-    $this->time = round($this->time, 2); //Milliseconds
+    // Difference.
+    $this->time = $this->timeEnd * 1000 - $this->timeStart * 1000;
+    // Milliseconds.
+    $this->time = round($this->time, 2);
 
   }
 
+  /**
+   * Add Comments.
+   */
   public function request($method, $uri, $options, $debug = FALSE, $catch = TRUE) {
 
-    //Clear out old data
+    // Clear out old data.
     $this->initialise();
 
     if (isset($options['body'])) {
@@ -202,7 +301,7 @@ class AceGuzzleClient {
       // Stop timer.
       $this->stop();
 
-      $this->log($method, $uri, $options, $this->lastCode, 'info', $debug);
+      $this->log($method, $uri, $options, $this->lastCode, $debug, $type = 'info');
 
       return $this->lastResponse;
 
@@ -257,7 +356,7 @@ class AceGuzzleClient {
 
       $options['error']['message'][] = $e->getMessage();
 
-      $this->log($method, $uri, $options, $this->lastCode, $type, $debug);
+      $this->log($method, $uri, $options, $this->lastCode, $debug, $type);
 
       $this->lastResponse = $e->getResponse();
 
@@ -304,7 +403,10 @@ class AceGuzzleClient {
     }
   }
 
-  private function log($method, $uri, $options, $code, $type = 'info', $debug) {
+  /**
+   * Add Comments.
+   */
+  private function log($method, $uri, $options, $code, $debug, $type = 'info') {
     // Is the trace enabled.
     $trace = $this->configFactory->get('ace_interface.settings')->get('trace');
 
@@ -324,13 +426,16 @@ class AceGuzzleClient {
     }
   }
 
+  /**
+   * Add Comments.
+   */
   private function trace($method, $uri, $options, $code) {
     // Remove curl.
     if (isset($options['curl'])) {
       unset($options['curl']);
     }
 
-    //Move body down the presentation order
+    // Move body down the presentation order.
     if (isset($options['body'])) {
       $body = $options['body'];
       unset($options['body']);
@@ -339,7 +444,7 @@ class AceGuzzleClient {
       $body = NULL;
     }
 
-    //Move header down the presentation order
+    // Move header down the presentation order.
     if (isset($options['headers'])) {
       $headers = $options['headers'];
       unset($options['headers']);
@@ -348,9 +453,8 @@ class AceGuzzleClient {
       $headers = NULL;
     }
 
-    //Track time taken, URI called and the headers sent
-
-    //Title
+    // Track time taken, URI called and the headers sent
+    // Title.
     $title = $method . ' ' . $code . ' took ' . $this->time . 'ms for ' . $uri;
     $build = [
       '#type' => 'details',
@@ -358,14 +462,13 @@ class AceGuzzleClient {
     ];
     $build['response_header']['start'] = '';
 
-    //Add request information
-
+    // Add request information.
     $options['method'] = $method;
     $options['code'] = $code;
     $options['time'] = $this->time . 'ms';
     $options['uri'] = $uri;
 
-    //Reattached body
+    // Reattached body.
     if ($body) {
       $options['body'] = $body;
     }
@@ -383,6 +486,7 @@ class AceGuzzleClient {
         case 'Connection':
           unset($headers[$key]);
           break;
+
         case 'Authorization':
 
           $build['authorization'] = [
@@ -403,7 +507,6 @@ class AceGuzzleClient {
     }
 
     $options['headers'] = $headers;
-
 
     if (isset($options['body'])) {
       try {
@@ -440,7 +543,6 @@ class AceGuzzleClient {
 
       }
     }
-
 
     if (isset($options["body"]["cxm_submissiondata"])) {
       try {
@@ -498,7 +600,7 @@ class AceGuzzleClient {
           '#value' => $options["body"]["cxm_tempstore"],
         ];
 
-        //Decode the temp store
+        // Decode the temp store.
         $decoded = base64_decode($options["body"]["cxm_tempstore"]);
 
         $build['train']['XML'] = [
@@ -509,9 +611,8 @@ class AceGuzzleClient {
           '#value' => $decoded,
         ];
 
-        //break up the temp store
+        // Break up the temp store.
         $options['body']['cxm_tempstore'] = 'visualised';
-
 
       }
       catch (exception $e) {
@@ -520,7 +621,6 @@ class AceGuzzleClient {
 
       }
     }
-
 
     $build['response_header'] = [
       '#type' => 'item',
