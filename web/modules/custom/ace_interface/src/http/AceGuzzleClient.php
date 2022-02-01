@@ -5,6 +5,9 @@ namespace Drupal\ace_interface\http;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use GuzzleHttp\Client;
 use Drupal\Core\Serialization\Yaml;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 
 /**
  * AceGuzzleClient.
@@ -12,6 +15,27 @@ use Drupal\Core\Serialization\Yaml;
  * Utilizes the Guzzle HTTP Client.
  */
 class AceGuzzleClient {
+
+  /**
+   * The Messenger service.
+   *
+   * @var \Drupal\Core\Messenger\MessengerInterface
+   */
+  protected $messenger;
+
+  /**
+   * The renderer service.
+   *
+   * @var \Drupal\Core\Render\RendererInterface
+   */
+  protected $renderer;
+
+  /**
+   * The logger channel factory.
+   *
+   * @var \Drupal\Core\Logger\LoggerChannelFactoryInterface
+   */
+  protected $logger;
 
   /**
    * GuzzleHttpClient $client.
@@ -98,15 +122,25 @@ class AceGuzzleClient {
   protected $configFactory;
 
   /**
-   * Add Comments.
+   * Constructs a new AceGuzzleClient.
+   *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The Config factory.
+   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $logger
+   *   The logger channel factory.
+   * @param \Drupal\Core\Render\RendererInterface $renderer
+   *   The renderer.
+   * @param \Drupal\Core\Messenger\MessengerInterface $messenger
+   *   The messenger service.
    */
-  public function __construct(ConfigFactoryInterface $config_factory) {
-
+  public function __construct(ConfigFactoryInterface $config_factory, LoggerChannelFactoryInterface $logger, RendererInterface $renderer, MessengerInterface $messenger) {
     $this->configFactory = $config_factory;
+    $this->logger = $logger;
+    $this->renderer = $renderer;
+    $this->messenger = $messenger;
     $this->lastRequest = NULL;
     $this->lastBody = NULL;
     $this->config = $config_factory->get('ace_interface.settings');
-
   }
 
   /**
@@ -349,9 +383,9 @@ class AceGuzzleClient {
       }
 
       if ($real) {
-        \Drupal::logger('Guzzle')->error($e->getMessage());
-        \Drupal::messenger()
-          ->addError('An system error has occurred.  Do not continue and please contact support quoting error reference DD-1421.');
+        $this->logger->get('Guzzle')->error($e->getMessage());
+
+        $this->messenger->addError($this->t('An system error has occurred.  Do not continue and please contact support quoting error reference DD-1421.'));
       }
 
       $options['error']['message'][] = $e->getMessage();
@@ -369,7 +403,7 @@ class AceGuzzleClient {
 
           $code = $error_body->errors[0]->code;
 
-          $config = \Drupal::configFactory()
+          $config = $this->configFactory()
             ->get('ace_interface_error_library.settings');
 
           if ($config) {
@@ -632,8 +666,7 @@ class AceGuzzleClient {
       ],
     ];
 
-    \Drupal::logger('Guzzle')->debug(\Drupal::service('renderer')
-      ->renderPlain($build));
+    $this->logger->get('Guzzle')->debug($this->renderer->renderPlain($build));
 
   }
 
